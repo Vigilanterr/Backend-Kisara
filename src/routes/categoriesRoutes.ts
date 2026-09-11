@@ -3,7 +3,7 @@ import categoriesController from '../controllers/categories/categoriesController
 
 const router = Router();
 
-router.get('/categories', categoriesController.getCategories);
-router.post('/categories', categoriesController.createCategory);
+router.get('/', categoriesController.getCategories);
+router.post('/', categoriesController.createCategory);
 
 export default router;
