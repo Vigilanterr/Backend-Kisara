@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { db } from '../config/db';
-import { postsTable, categoriesTable } from '../config/schema';
+import { db } from '../../config/db';
+import { postsTable, categoriesTable } from '../../config/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export class PostsController {
