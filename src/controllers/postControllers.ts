@@ -4,7 +4,7 @@ import { postsTable, categoriesTable } from '../config/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export class PostsController {
-  // Get All Posts
+  // GET ALL POSTS
   getPosts = async (req: Request, res: Response) => {
     try {
       const posts = await db
@@ -35,7 +35,7 @@ export class PostsController {
     }
   };
 
-  // Get Post By ID
+  // GET POST BY ID
   getPostById = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -74,7 +74,7 @@ export class PostsController {
     }
   };
 
-  // Create Post
+  // CREATE POST
   createPost = async (req: Request, res: Response) => {
     try {
       const { categoryId, title, content, image, author } = req.body;
@@ -111,7 +111,7 @@ export class PostsController {
     }
   };
 
-  // Update Post
+  // UPDATE POST
   updatePost = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -151,7 +151,7 @@ export class PostsController {
     }
   };
 
-  // Delete Post
+  // DELETE POST
   deletePost = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

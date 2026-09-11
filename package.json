@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "dev": "nodemon src/index.ts",
+    "test" : "echo error"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +28,6 @@
     "drizzle-kit": "^0.31.10",
     "nodemon": "^3.1.14",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3"
   }
 }
