@@ -3,10 +3,10 @@ import postsController from '../controllers/posts/postControllers';
 
 const router = Router();
 
-router.get('/posts', postsController.getPosts);
-router.get('/posts/:id', postsController.getPostById);
-router.post('/posts', postsController.createPost);
-router.put('/posts/:id', postsController.updatePost);
-router.delete('/posts/:id', postsController.deletePost);
+router.get('/', postsController.getPosts);
+router.get('/:id', postsController.getPostById);
+router.post('/', postsController.createPost);
+router.put('/:id', postsController.updatePost);
+router.delete('/:id', postsController.deletePost);
 
 export default router;
