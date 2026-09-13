@@ -18,3 +18,13 @@ export const postsTable = pgTable('posts', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+export const commentsTable = pgTable('comments', {
+  id: serial('id').primaryKey(),
+  postId: integer('post_id')
+    .references(() => postsTable.id, { onDelete: 'cascade' })
+    .notNull(),
+  userName: varchar('user_name', { length: 100 }).default('Anonim'),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});

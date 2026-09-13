@@ -1,11 +1,26 @@
 import { Request, Response } from 'express';
-import * as postsService from '../../services/posts.service';
+import { db } from '../../config/db';
+import { postsTable, categoriesTable } from '../../config/schema';
+import { eq, desc } from 'drizzle-orm';
 
 export class PostsController {
   // GET ALL POSTS
   getPosts = async (req: Request, res: Response) => {
     try {
-      const posts = await postsService.getAllPosts();
+      const posts = await db
+        .select({
+          id: postsTable.id,
+          title: postsTable.title,
+          content: postsTable.content,
+          image: postsTable.image,
+          author: postsTable.author,
+          categoryId: postsTable.categoryId,
+          categoryName: categoriesTable.name,
+          createdAt: postsTable.createdAt,
+        })
+        .from(postsTable)
+        .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+        .orderBy(desc(postsTable.createdAt));
 
       return res.status(200).json({
         success: true,
@@ -20,11 +35,23 @@ export class PostsController {
     }
   };
 
-  // GET POST BY ID
   getPostById = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const post = await postsService.getPostById(Number(id));
+      const [post] = await db
+        .select({
+          id: postsTable.id,
+          title: postsTable.title,
+          content: postsTable.content,
+          image: postsTable.image,
+          author: postsTable.author,
+          categoryId: postsTable.categoryId,
+          categoryName: categoriesTable.name,
+          createdAt: postsTable.createdAt,
+        })
+        .from(postsTable)
+        .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+        .where(eq(postsTable.id, Number(id)));
 
       if (!post) {
         return res.status(404).json({
@@ -46,7 +73,6 @@ export class PostsController {
     }
   };
 
-  // CREATE POST
   createPost = async (req: Request, res: Response) => {
     try {
       const { categoryId, title, content, image, author } = req.body;
@@ -58,13 +84,16 @@ export class PostsController {
         });
       }
 
-      const newPost = await postsService.createPost({
-        categoryId: Number(categoryId),
-        title,
-        content,
-        image,
-        author,
-      });
+      const [newPost] = await db
+        .insert(postsTable)
+        .values({
+          categoryId: Number(categoryId),
+          title,
+          content,
+          image: image || null,
+          author: author || 'Anonim',
+        })
+        .returning();
 
       return res.status(201).json({
         success: true,
@@ -80,19 +109,23 @@ export class PostsController {
     }
   };
 
-  // UPDATE POST
   updatePost = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { categoryId, title, content, image, author } = req.body;
 
-      const updatedPost = await postsService.updatePost(Number(id), {
-        categoryId: categoryId ? Number(categoryId) : undefined,
-        title,
-        content,
-        image,
-        author,
-      });
+      const [updatedPost] = await db
+        .update(postsTable)
+        .set({
+          categoryId: categoryId ? Number(categoryId) : undefined,
+          title,
+          content,
+          image,
+          author,
+          updatedAt: new Date(),
+        })
+        .where(eq(postsTable.id, Number(id)))
+        .returning();
 
       if (!updatedPost) {
         return res.status(404).json({
@@ -115,12 +148,14 @@ export class PostsController {
     }
   };
 
-  // DELETE POST
   deletePost = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
-      const deletedPost = await postsService.deletePost(Number(id));
+      const [deletedPost] = await db
+        .delete(postsTable)
+        .where(eq(postsTable.id, Number(id)))
+        .returning();
 
       if (!deletedPost) {
         return res.status(404).json({
