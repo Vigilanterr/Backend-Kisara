@@ -1,25 +1,35 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '../../config/db';
-import { postsTable, categoriesTable } from '../../config/schema';
-import { eq, desc } from 'drizzle-orm';
+import { postsTable, categoriesTable, usersTable, postLikesTable, commentsTable } from '../../config/schema';
+import { eq, desc, sql, ilike, or } from 'drizzle-orm';
+import { AuthRequest } from '../../middleware/auth';
 
 export class PostsController {
-  // GET ALL POSTS
-  getPosts = async (req: Request, res: Response) => {
+  getPosts = async (req: AuthRequest, res: Response) => {
     try {
       const posts = await db
         .select({
           id: postsTable.id,
           title: postsTable.title,
           content: postsTable.content,
-          image: postsTable.image,
-          author: postsTable.author,
+          picture: postsTable.picture,
           categoryId: postsTable.categoryId,
           categoryName: categoriesTable.name,
+          author: {
+            id: usersTable.id,
+            name: usersTable.name,
+            picture: usersTable.picture,
+          },
+          likeCount: sql<number>`count(${postLikesTable.id})::int`,
+          commentCount: sql<number>`count(${commentsTable.id})::int`,
           createdAt: postsTable.createdAt,
         })
         .from(postsTable)
         .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+        .leftJoin(usersTable, eq(postsTable.userId, usersTable.id))
+        .leftJoin(postLikesTable, eq(postsTable.id, postLikesTable.postId))
+        .leftJoin(commentsTable, eq(postsTable.id, commentsTable.postId))
+        .groupBy(postsTable.id, categoriesTable.id, usersTable.id)
         .orderBy(desc(postsTable.createdAt));
 
       return res.status(200).json({
@@ -35,7 +45,7 @@ export class PostsController {
     }
   };
 
-  getPostById = async (req: Request, res: Response) => {
+  getPostById = async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
       const [post] = await db
@@ -43,15 +53,25 @@ export class PostsController {
           id: postsTable.id,
           title: postsTable.title,
           content: postsTable.content,
-          image: postsTable.image,
-          author: postsTable.author,
+          picture: postsTable.picture,
           categoryId: postsTable.categoryId,
           categoryName: categoriesTable.name,
+          author: {
+            id: usersTable.id,
+            name: usersTable.name,
+            picture: usersTable.picture,
+          },
+          likeCount: sql<number>`count(${postLikesTable.id})::int`,
+          commentCount: sql<number>`count(${commentsTable.id})::int`,
           createdAt: postsTable.createdAt,
         })
         .from(postsTable)
         .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
-        .where(eq(postsTable.id, Number(id)));
+        .leftJoin(usersTable, eq(postsTable.userId, usersTable.id))
+        .leftJoin(postLikesTable, eq(postsTable.id, postLikesTable.postId))
+        .leftJoin(commentsTable, eq(postsTable.id, commentsTable.postId))
+        .where(eq(postsTable.id, Number(id)))
+        .groupBy(postsTable.id, categoriesTable.id, usersTable.id);
 
       if (!post) {
         return res.status(404).json({
@@ -73,9 +93,9 @@ export class PostsController {
     }
   };
 
-  createPost = async (req: Request, res: Response) => {
+  createPost = async (req: AuthRequest, res: Response) => {
     try {
-      const { categoryId, title, content, image, author } = req.body;
+      const { categoryId, title, content, picture } = req.body;
 
       if (!title || !content || !categoryId) {
         return res.status(400).json({
@@ -87,11 +107,11 @@ export class PostsController {
       const [newPost] = await db
         .insert(postsTable)
         .values({
+          userId: req.userId!,
           categoryId: Number(categoryId),
           title,
           content,
-          image: image || null,
-          author: author || 'Anonim',
+          picture: picture || null,
         })
         .returning();
 
@@ -109,10 +129,29 @@ export class PostsController {
     }
   };
 
-  updatePost = async (req: Request, res: Response) => {
+  updatePost = async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { categoryId, title, content, image, author } = req.body;
+      const { categoryId, title, content, picture } = req.body;
+
+      const [existingPost] = await db
+        .select()
+        .from(postsTable)
+        .where(eq(postsTable.id, Number(id)));
+
+      if (!existingPost) {
+        return res.status(404).json({
+          success: false,
+          message: 'Artikel tidak ditemukan',
+        });
+      }
+
+      if (existingPost.userId !== req.userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tidak memiliki izin untuk mengubah artikel ini',
+        });
+      }
 
       const [updatedPost] = await db
         .update(postsTable)
@@ -120,19 +159,11 @@ export class PostsController {
           categoryId: categoryId ? Number(categoryId) : undefined,
           title,
           content,
-          image,
-          author,
+          picture,
           updatedAt: new Date(),
         })
         .where(eq(postsTable.id, Number(id)))
         .returning();
-
-      if (!updatedPost) {
-        return res.status(404).json({
-          success: false,
-          message: 'Artikel tidak ditemukan',
-        });
-      }
 
       return res.status(200).json({
         success: true,
@@ -148,25 +179,93 @@ export class PostsController {
     }
   };
 
-  deletePost = async (req: Request, res: Response) => {
+  deletePost = async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
 
-      const [deletedPost] = await db
-        .delete(postsTable)
-        .where(eq(postsTable.id, Number(id)))
-        .returning();
+      const [existingPost] = await db
+        .select()
+        .from(postsTable)
+        .where(eq(postsTable.id, Number(id)));
 
-      if (!deletedPost) {
+      if (!existingPost) {
         return res.status(404).json({
           success: false,
           message: 'Artikel tidak ditemukan',
         });
       }
 
+      if (existingPost.userId !== req.userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tidak memiliki izin untuk menghapus artikel ini',
+        });
+      }
+
+      await db
+        .delete(postsTable)
+        .where(eq(postsTable.id, Number(id)));
+
       return res.status(200).json({
         success: true,
         message: 'Artikel berhasil dihapus',
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: 'Terjadi kesalahan pada server',
+        error: error.message,
+      });
+    }
+  };
+
+  searchPosts = async (req: AuthRequest, res: Response) => {
+    try {
+      const { q } = req.query;
+
+      if (!q || String(q).trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'Query pencarian wajib diisi',
+        });
+      }
+
+      const searchTerm = `%${String(q)}%`;
+
+      const posts = await db
+        .select({
+          id: postsTable.id,
+          title: postsTable.title,
+          content: postsTable.content,
+          picture: postsTable.picture,
+          categoryId: postsTable.categoryId,
+          categoryName: categoriesTable.name,
+          author: {
+            id: usersTable.id,
+            name: usersTable.name,
+            picture: usersTable.picture,
+          },
+          likeCount: sql<number>`count(${postLikesTable.id})::int`,
+          commentCount: sql<number>`count(${commentsTable.id})::int`,
+          createdAt: postsTable.createdAt,
+        })
+        .from(postsTable)
+        .leftJoin(categoriesTable, eq(postsTable.categoryId, categoriesTable.id))
+        .leftJoin(usersTable, eq(postsTable.userId, usersTable.id))
+        .leftJoin(postLikesTable, eq(postsTable.id, postLikesTable.postId))
+        .leftJoin(commentsTable, eq(postsTable.id, commentsTable.postId))
+        .where(
+          or(
+            ilike(postsTable.title, searchTerm),
+            ilike(postsTable.content, searchTerm)
+          )
+        )
+        .groupBy(postsTable.id, categoriesTable.id, usersTable.id)
+        .orderBy(desc(postsTable.createdAt));
+
+      return res.status(200).json({
+        success: true,
+        data: posts,
       });
     } catch (error: any) {
       return res.status(500).json({

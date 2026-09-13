@@ -5,17 +5,19 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "test" : "echo error"
+    "test": "echo error"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.24.4",
     "pg": "^8.23.0",
     "zod": "^4.6.2"

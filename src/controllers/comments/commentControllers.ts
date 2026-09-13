@@ -1,15 +1,26 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { db } from '../../config/db';
-import { commentsTable, postsTable } from '../../config/schema';
+import { commentsTable, postsTable, usersTable } from '../../config/schema';
 import { eq, desc } from 'drizzle-orm';
+import { AuthRequest } from '../../middleware/auth';
 
 export class CommentsController {
-  getComments = async (req: Request, res: Response) => {
+  getComments = async (req: AuthRequest, res: Response) => {
     try {
       const { postId } = req.params;
       const comments = await db
-        .select()
+        .select({
+          id: commentsTable.id,
+          content: commentsTable.content,
+          user: {
+            id: usersTable.id,
+            name: usersTable.name,
+            picture: usersTable.picture,
+          },
+          createdAt: commentsTable.createdAt,
+        })
         .from(commentsTable)
+        .leftJoin(usersTable, eq(commentsTable.userId, usersTable.id))
         .where(eq(commentsTable.postId, Number(postId)))
         .orderBy(desc(commentsTable.createdAt));
 
@@ -26,10 +37,10 @@ export class CommentsController {
     }
   };
 
-  createComment = async (req: Request, res: Response) => {
+  createComment = async (req: AuthRequest, res: Response) => {
     try {
       const { postId } = req.params;
-      const { content, userName } = req.body;
+      const { content } = req.body;
 
       if (!content) {
         return res.status(400).json({
@@ -49,9 +60,9 @@ export class CommentsController {
       const [newComment] = await db
         .insert(commentsTable)
         .values({
+          userId: req.userId!,
           postId: Number(postId),
           content,
-          userName: userName || 'Anonim',
         })
         .returning();
 
@@ -59,6 +70,46 @@ export class CommentsController {
         success: true,
         message: 'Komentar berhasil ditambahkan',
         data: newComment,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: 'Terjadi kesalahan pada server',
+        error: error.message,
+      });
+    }
+  };
+
+  deleteComment = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const [existingComment] = await db
+        .select()
+        .from(commentsTable)
+        .where(eq(commentsTable.id, Number(id)));
+
+      if (!existingComment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Komentar tidak ditemukan',
+        });
+      }
+
+      if (existingComment.userId !== req.userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tidak memiliki izin untuk menghapus komentar ini',
+        });
+      }
+
+      await db
+        .delete(commentsTable)
+        .where(eq(commentsTable.id, Number(id)));
+
+      return res.status(200).json({
+        success: true,
+        message: 'Komentar berhasil dihapus',
       });
     } catch (error: any) {
       return res.status(500).json({
