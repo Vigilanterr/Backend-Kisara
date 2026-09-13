@@ -95,7 +95,8 @@ export class PostsController {
 
   createPost = async (req: AuthRequest, res: Response) => {
     try {
-      const { categoryId, title, content, picture } = req.body;
+      const { categoryId, title, content } = req.body;
+      const pictureUrl = (req as any).pictureUrl || req.body.picture || null;
 
       if (!title || !content || !categoryId) {
         return res.status(400).json({
@@ -111,7 +112,7 @@ export class PostsController {
           categoryId: Number(categoryId),
           title,
           content,
-          picture: picture || null,
+          picture: pictureUrl,
         })
         .returning();
 
@@ -132,7 +133,8 @@ export class PostsController {
   updatePost = async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { categoryId, title, content, picture } = req.body;
+      const { categoryId, title, content } = req.body;
+      const pictureUrl = (req as any).pictureUrl || req.body.picture || undefined;
 
       const [existingPost] = await db
         .select()
@@ -159,7 +161,7 @@ export class PostsController {
           categoryId: categoryId ? Number(categoryId) : undefined,
           title,
           content,
-          picture,
+          picture: pictureUrl,
           updatedAt: new Date(),
         })
         .where(eq(postsTable.id, Number(id)))
