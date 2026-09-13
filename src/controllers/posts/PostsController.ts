@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { db } from '../config/db';
-import { postsTable, categoriesTable, usersTable, postLikesTable, commentsTable } from '../config/schema';
+import { db } from '../../config/db';
+import { postsTable, categoriesTable, usersTable, postLikesTable, commentsTable } from '../../config/schema';
 import { eq, desc, sql, ilike, or } from 'drizzle-orm';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '../../middleware/auth';
 
 export class PostsController {
   getPosts = async (req: AuthRequest, res: Response) => {

@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import postsController from '../../controllers/PostsController';
-import { authMiddleware } from '../../middleware/auth';
-import { uploadImage, uploadToCloudinary } from '../../middleware/upload';
+import postsController from '../controllers/posts/PostsController';
+import { authMiddleware } from '../middleware/auth';
+import { uploadImage, uploadToCloudinary } from '../middleware/upload';
 
 const router = Router();
 
