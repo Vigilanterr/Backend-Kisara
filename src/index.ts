@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import postRoutes from './routes/postRoutes';
+import postsRoute from './routes/posts/posts.route';
+import authRoute from './routes/auth/auth.route';
 
 dotenv.config();
 
@@ -14,6 +15,9 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.send('Berhasil jalan');
 });
+
+app.use('/api/auth', authRoute);
+app.use('/api/posts', postsRoute);
 
 app.listen(PORT, () => {
   console.log(`Server berhasil berjalan di http://localhost:${PORT}`);
