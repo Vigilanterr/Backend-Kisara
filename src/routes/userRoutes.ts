@@ -1,13 +1,15 @@
 import { Router } from 'express';
-import usersController from '../controllers/users/usersControllers';
-import savesController from '../controllers/saves/saveControllers';
+import { getMe } from '../controllers/users/getMe';
+import { getUserById } from '../controllers/users/getUserById';
+import { searchUsers } from '../controllers/users/searchUsers';
+import { getSavedPosts } from '../controllers/saves/getSavedPosts';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-router.get('/me', authMiddleware, usersController.getMe);
-router.get('/me/saved-posts', authMiddleware, savesController.getSavedPosts);
-router.get('/search', authMiddleware, usersController.searchUsers);
-router.get('/:id', authMiddleware, usersController.getUserById);
+router.get('/me', authMiddleware, getMe);
+router.get('/me/saved-posts', authMiddleware, getSavedPosts);
+router.get('/search', authMiddleware, searchUsers);
+router.get('/:id', authMiddleware, getUserById);
 
 export default router;

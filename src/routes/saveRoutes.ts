@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import savesController from '../controllers/saves/saveControllers';
+import { toggleSave } from '../controllers/saves/toggleSave';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/:id/save', authMiddleware, savesController.toggleSave);
+router.post('/:id/save', authMiddleware, toggleSave);
 
 export default router;
