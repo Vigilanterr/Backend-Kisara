@@ -1,13 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoute from './routes/auth.routes';
-import postsRoute from './routes/posts.routes';
-import commentsRoute from './routes/comments.routes';
-import likesRoute from './routes/likes.routes';
-import savesRoute from './routes/saves.routes';
-import categoriesRoute from './routes/categories.routes';
-import usersRoute from './routes/users.routes';
+
+import authRoute from './routes/auth/auth.route';
+import postsRoute from './routes/posts/posts.route';
+import categoriesRoute from './routes/categories/categories.route';
+import usersRoute from './routes/users/users.route';
+import commentsRoute from './routes/comments/comments.route';
+import likesRoute from './routes/likes/likes.route';
+import savesRoute from './routes/saves/saves.route';
 
 dotenv.config();
 
@@ -21,7 +22,6 @@ app.get('/', (req, res) => {
   res.send('Berhasil jalan');
 });
 
-// Routes
 app.use('/api/auth', authRoute);
 app.use('/api/posts', postsRoute);
 app.use('/api/posts', commentsRoute);
