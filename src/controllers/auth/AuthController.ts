@@ -1,23 +1,36 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { db } from '../../config/db';
 import { usersTable } from '../../config/schema';
 import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
 
+const registerSchema = z.object({
+  name: z.string().min(1, 'Nama wajib diisi').max(100, 'Nama maksimal 100 karakter'),
+  email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
+  password: z.string().min(6, 'Password minimal 6 karakter'),
+});
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email wajib diisi').email('Format email tidak valid'),
+  password: z.string().min(1, 'Password wajib diisi'),
+});
+
 export class AuthController {
   register = async (req: Request, res: Response) => {
     try {
-      const { name, email, password } = req.body;
-
-      if (!name || !email || !password) {
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({
           success: false,
-          message: 'Name, email, dan password wajib diisi',
+          message: parsed.error.issues[0].message,
         });
       }
+
+      const { name, email, password } = parsed.data;
 
       const [existingUser] = await db
         .select()
@@ -54,14 +67,15 @@ export class AuthController {
 
   login = async (req: Request, res: Response) => {
     try {
-      const { email, password } = req.body;
-
-      if (!email || !password) {
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
         return res.status(400).json({
           success: false,
-          message: 'Email dan password wajib diisi',
+          message: parsed.error.issues[0].message,
         });
       }
+
+      const { email, password } = parsed.data;
 
       const [user] = await db
         .select()

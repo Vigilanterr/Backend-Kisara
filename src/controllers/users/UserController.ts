@@ -114,6 +114,74 @@ export class UserController {
     }
   };
 
+  updateProfile = async (req: AuthRequest, res: Response) => {
+    try {
+      const { name, email } = req.body;
+      const pictureUrl = (req as any).pictureUrl || undefined;
+
+      if (!name || !email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Nama dan email wajib diisi',
+        });
+      }
+
+      const [existingUser] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, req.userId!));
+
+      if (!existingUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User tidak ditemukan',
+        });
+      }
+
+      if (email !== existingUser.email) {
+        const [emailTaken] = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.email, email));
+
+        if (emailTaken) {
+          return res.status(400).json({
+            success: false,
+            message: 'Email sudah digunakan oleh akun lain',
+          });
+        }
+      }
+
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({
+          name,
+          email,
+          ...(pictureUrl && { picture: pictureUrl }),
+        })
+        .where(eq(usersTable.id, req.userId!))
+        .returning({
+          id: usersTable.id,
+          name: usersTable.name,
+          email: usersTable.email,
+          picture: usersTable.picture,
+          createdAt: usersTable.createdAt,
+        });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profil berhasil diperbarui',
+        data: updatedUser,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: 'Terjadi kesalahan pada server',
+        error: error.message,
+      });
+    }
+  };
+
   searchUsers = async (req: AuthRequest, res: Response) => {
     try {
       const { q } = req.query;
